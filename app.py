@@ -6,16 +6,9 @@ app = Flask(__name__)
 
 APISPORTS_KEY = "50821732136711c22939fbb8ce18bcc2"
 
-# 한국 시간 기준 오늘 (KST 00:00 ~ 23:59)
 kst = timezone(timedelta(hours=9))
 today_kst = datetime.now(kst).replace(hour=0, minute=0, second=0, microsecond=0)
-
-# 내일 KST
 tomorrow_kst = today_kst + timedelta(days=1)
-
-# UTC 날짜 문자열
-today_utc = today_kst.astimezone(timezone.utc).strftime('%Y-%m-%d')
-tomorrow_utc = tomorrow_kst.astimezone(timezone.utc).strftime('%Y-%m-%d')
 
 def get_games(date_str):
     url = f"https://v2.nba.api-sports.io/games?date={date_str}"
@@ -25,10 +18,10 @@ def get_games(date_str):
         r.raise_for_status()
         return r.json().get('response', [])
     except Exception as e:
-        print(f"API 오류: {e}")
+        print(f"API Error: {e}")
         return []
 
-def get_filtered_games(target_kst):
+def get_filtered_and_sorted_games(target_kst):
     target_utc = target_kst.astimezone(timezone.utc).strftime('%Y-%m-%d')
     games = get_games(target_utc)
     
@@ -44,11 +37,13 @@ def get_filtered_games(target_kst):
             if kst_start <= dt_kst < kst_end:
                 filtered.append(game)
     
-    return sorted(filtered, key=lambda g: g.get('date', {}).get('start') or '')
+    # 시간순 정렬 복원 (원래 로직 그대로)
+    sorted_games = sorted(filtered, key=lambda g: g.get('date', {}).get('start') or '')
+    return sorted_games
 
-# 오늘/내일 게임 미리 불러오기 (캐싱 효과)
-today_games = get_filtered_games(today_kst)
-tomorrow_games = get_filtered_games(tomorrow_kst)
+# 캐싱처럼 미리 불러두기 (매 요청마다 API 호출 피함, Render에서 좋음)
+today_games = get_filtered_and_sorted_games(today_kst)
+tomorrow_games = get_filtered_and_sorted_games(tomorrow_kst)
 
 def generate_text_output(date_kst, games_list, label="오늘"):
     if not games_list:
@@ -57,7 +52,6 @@ def generate_text_output(date_kst, games_list, label="오늘"):
     lines = [f"🏀 한국 시간 {date_kst.strftime('%Y-%m-%d')} NBA 경기: {len(games_list)}개"]
     lines.append("-" * 38)
 
-    # 3글자 약어 맵핑
     abbr_map = {
         "New Orleans Pelicans": "NOP", "Orlando Magic": "ORL",
         "Brooklyn Nets": "BKN", "Memphis Grizzlies": "MEM",
@@ -69,12 +63,12 @@ def generate_text_output(date_kst, games_list, label="오늘"):
         "Washington Wizards": "WAS", "Phoenix Suns": "PHX",
         "Atlanta Hawks": "ATL", "Golden State Warriors": "GSW",
         "Houston Rockets": "HOU", "Sacramento Kings": "SAC",
+        # 추가 팀 (2026 시즌 기준 필요 시)
         "Los Angeles Lakers": "LAL", "Los Angeles Clippers": "LAC",
         "Boston Celtics": "BOS", "Cleveland Cavaliers": "CLE",
         "Dallas Mavericks": "DAL", "Detroit Pistons": "DET",
         "Indiana Pacers": "IND", "Chicago Bulls": "CHI",
         "Utah Jazz": "UTA", "Charlotte Hornets": "CHA",
-        # 필요 시 더 추가 (API 응답에 따라)
     }
 
     for game in games_list:
@@ -125,7 +119,7 @@ def kakao_skill():
 
     if any(k in utterance for k in ["오늘 경기", "nba 스코어", "오늘 nba", "nba 오늘"]):
         text = generate_text_output(today_kst, today_games, "오늘")
-    elif any(k in utterance for k in ["내일 경기", "내일 nba", "tomorrow nba", "내일 경기 결과"]):
+    elif any(k in utterance for k in ["내일 경기", "내일 nba", "tomorrow", "내일 경기 일정"]):
         text = generate_text_output(tomorrow_kst, tomorrow_games, "내일")
     else:
         text = "NBA 경기 정보를 원하시면 '오늘 경기' 또는 '내일 경기'라고 말씀해주세요! 🏀"
@@ -133,31 +127,15 @@ def kakao_skill():
     response = {
         "version": "2.0",
         "template": {
-            "outputs": [
-                {
-                    "simpleText": {
-                        "text": text
-                    }
-                }
-            ],
+            "outputs": [{"simpleText": {"text": text}}],
             "quickReplies": [
-                {
-                    "action": "message",
-                    "label": "오늘 경기",
-                    "messageText": "오늘 경기"
-                },
-                {
-                    "action": "message",
-                    "label": "내일 경기",
-                    "messageText": "내일 경기"
-                }
+                {"action": "message", "label": "오늘 경기", "messageText": "오늘 경기"},
+                {"action": "message", "label": "내일 경기", "messageText": "내일 경기"}
             ]
         }
     }
-
     return jsonify(response)
 
-# Render health check용 (선택적이지만 추천)
 @app.route('/health', methods=['GET'])
 def health():
     return "OK", 200
