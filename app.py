@@ -52,19 +52,40 @@ today_games = get_filtered_sorted_games(all_today, today_kst, today_kst + timede
 all_tomorrow = get_games(tomorrow_utc) + get_games(day_after_utc)
 tomorrow_games = get_filtered_sorted_games(all_tomorrow, tomorrow_kst, tomorrow_kst + timedelta(days=1))
 
-# 3글자 약어 맵 (네 test.py 기반 + 확장)
+# 3글자 약어 맵 - NBA 30개 팀 전체 (공식 약어 기준)
 abbr_map = {
-    "Milwaukee Bucks": "MIL",
-    "Denver Nuggets": "DEN",
-    "Washington Wizards": "WAS",
-    "Phoenix Suns": "PHX",
     "Atlanta Hawks": "ATL",
+    "Boston Celtics": "BOS",
+    "Brooklyn Nets": "BKN",
+    "Charlotte Hornets": "CHA",
+    "Chicago Bulls": "CHI",
+    "Cleveland Cavaliers": "CLE",
+    "Dallas Mavericks": "DAL",
+    "Denver Nuggets": "DEN",
+    "Detroit Pistons": "DET",
     "Golden State Warriors": "GSW",
     "Houston Rockets": "HOU",
+    "Indiana Pacers": "IND",
+    "Los Angeles Clippers": "LAC",          # 공식: Los Angeles Clippers → LAC
+    "LA Clippers": "LAC",                   # 변형 이름 대비
+    "Los Angeles Lakers": "LAL",            # 공식: Los Angeles Lakers → LAL
+    "LA Lakers": "LAL",                     # 변형 이름 대비
+    "Memphis Grizzlies": "MEM",
+    "Miami Heat": "MIA",
+    "Milwaukee Bucks": "MIL",
+    "Minnesota Timberwolves": "MIN",
+    "New Orleans Pelicans": "NOP",
+    "New York Knicks": "NYK",
+    "Oklahoma City Thunder": "OKC",
+    "Orlando Magic": "ORL",
+    "Philadelphia 76ers": "PHI",
+    "Phoenix Suns": "PHX",
+    "Portland Trail Blazers": "POR",
     "Sacramento Kings": "SAC",
-    "LA Clippers": "LAC",          # Los Angeles Clippers
-    "Los Angeles Lakers": "LAL",   # Los Angeles Lakers
-    # 더 많은 팀 추가 추천 (실제 경기 나오면 자동 앞3글자)
+    "San Antonio Spurs": "SAS",
+    "Toronto Raptors": "TOR",
+    "Utah Jazz": "UTA",
+    "Washington Wizards": "WAS",
 }
 
 def generate_text_output(date_kst, games_list, label="오늘"):
