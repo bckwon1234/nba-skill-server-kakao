@@ -8,7 +8,19 @@ APISPORTS_KEY = "50821732136711c22939fbb8ce18bcc2"
 
 kst = timezone(timedelta(hours=9))
 today_kst = datetime.now(kst).replace(hour=0, minute=0, second=0, microsecond=0)
+
+# 오늘용 UTC 범위 (시차 때문에 어제+오늘 불러옴)
+start_utc = today_kst.astimezone(timezone.utc)
+end_utc = (today_kst + timedelta(days=1)).astimezone(timezone.utc) - timedelta(seconds=1)
+yesterday_utc = start_utc.strftime('%Y-%m-%d')
+today_utc = end_utc.strftime('%Y-%m-%d')
+
+# 내일용 UTC 범위 (내일+모레 불러와서 안전하게)
 tomorrow_kst = today_kst + timedelta(days=1)
+tomorrow_start_utc = tomorrow_kst.astimezone(timezone.utc)
+tomorrow_end_utc = (tomorrow_kst + timedelta(days=1)).astimezone(timezone.utc) - timedelta(seconds=1)
+tomorrow_utc = tomorrow_start_utc.strftime('%Y-%m-%d')
+day_after_utc = tomorrow_end_utc.strftime('%Y-%m-%d')
 
 def get_games(date_str):
     url = f"https://v2.nba.api-sports.io/games?date={date_str}"
@@ -18,32 +30,40 @@ def get_games(date_str):
         r.raise_for_status()
         return r.json().get('response', [])
     except Exception as e:
-        print(f"API Error: {e}")
+        print(f"API Error on {date_str}: {e}")
         return []
 
-def get_filtered_and_sorted_games(target_kst):
-    target_utc = target_kst.astimezone(timezone.utc).strftime('%Y-%m-%d')
-    games = get_games(target_utc)
-    
+def get_filtered_sorted_games(all_g, kst_start, kst_end):
     filtered = []
-    kst_start = target_kst
-    kst_end = target_kst + timedelta(days=1)
-    
-    for game in games:
+    for game in all_g:
         start_time = game.get('date', {}).get('start')
         if start_time:
             dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
             dt_kst = dt.astimezone(kst)
             if kst_start <= dt_kst < kst_end:
                 filtered.append(game)
-    
-    # 시간순 정렬 복원 (원래 로직 그대로)
-    sorted_games = sorted(filtered, key=lambda g: g.get('date', {}).get('start') or '')
-    return sorted_games
+    return sorted(filtered, key=lambda g: g.get('date', {}).get('start') or '')
 
-# 캐싱처럼 미리 불러두기 (매 요청마다 API 호출 피함, Render에서 좋음)
-today_games = get_filtered_and_sorted_games(today_kst)
-tomorrow_games = get_filtered_and_sorted_games(tomorrow_kst)
+# 오늘 경기 데이터
+all_today = get_games(yesterday_utc) + get_games(today_utc)
+today_games = get_filtered_sorted_games(all_today, today_kst, today_kst + timedelta(days=1))
+
+# 내일 경기 데이터
+all_tomorrow = get_games(tomorrow_utc) + get_games(day_after_utc)
+tomorrow_games = get_filtered_sorted_games(all_tomorrow, tomorrow_kst, tomorrow_kst + timedelta(days=1))
+
+# 3글자 약어 맵 (네 test.py 기반 + 확장)
+abbr_map = {
+    "Milwaukee Bucks": "MIL",
+    "Denver Nuggets": "DEN",
+    "Washington Wizards": "WAS",
+    "Phoenix Suns": "PHX",
+    "Atlanta Hawks": "ATL",
+    "Golden State Warriors": "GSW",
+    "Houston Rockets": "HOU",
+    "Sacramento Kings": "SAC",
+    # 더 많은 팀 추가 추천 (실제 경기 나오면 자동 앞3글자)
+}
 
 def generate_text_output(date_kst, games_list, label="오늘"):
     if not games_list:
@@ -51,25 +71,6 @@ def generate_text_output(date_kst, games_list, label="오늘"):
 
     lines = [f"🏀 한국 시간 {date_kst.strftime('%Y-%m-%d')} NBA 경기: {len(games_list)}개"]
     lines.append("-" * 38)
-
-    abbr_map = {
-        "New Orleans Pelicans": "NOP", "Orlando Magic": "ORL",
-        "Brooklyn Nets": "BKN", "Memphis Grizzlies": "MEM",
-        "Philadelphia 76ers": "PHI", "Toronto Raptors": "TOR",
-        "New York Knicks": "NYK", "Portland Trail Blazers": "POR",
-        "San Antonio Spurs": "SAS", "Minnesota Timberwolves": "MIN",
-        "Miami Heat": "MIA", "Oklahoma City Thunder": "OKC",
-        "Milwaukee Bucks": "MIL", "Denver Nuggets": "DEN",
-        "Washington Wizards": "WAS", "Phoenix Suns": "PHX",
-        "Atlanta Hawks": "ATL", "Golden State Warriors": "GSW",
-        "Houston Rockets": "HOU", "Sacramento Kings": "SAC",
-        # 추가 팀 (2026 시즌 기준 필요 시)
-        "Los Angeles Lakers": "LAL", "Los Angeles Clippers": "LAC",
-        "Boston Celtics": "BOS", "Cleveland Cavaliers": "CLE",
-        "Dallas Mavericks": "DAL", "Detroit Pistons": "DET",
-        "Indiana Pacers": "IND", "Chicago Bulls": "CHI",
-        "Utah Jazz": "UTA", "Charlotte Hornets": "CHA",
-    }
 
     for game in games_list:
         start_time = game['date'].get('start')
@@ -88,7 +89,7 @@ def generate_text_output(date_kst, games_list, label="오늘"):
         visitors_score = game['scores']['visitors'].get('points') or '-'
 
         status_short = game['status']['short']
-
+        
         if status_short in ['1', 'NS']:
             icon = "🕒"
             score_line = f"{visitors_abbr} vs {home_abbr}"
@@ -107,8 +108,7 @@ def generate_text_output(date_kst, games_list, label="오늘"):
             status_text = status_short
 
         status_part = f" ({status_text})" if status_text else ""
-        line = f"{icon} {time_str} | {score_line}{status_part}"
-        lines.append(line)
+        lines.append(f"{icon} {time_str} | {score_line}{status_part}")
 
     return "\n".join(lines)
 
@@ -136,6 +136,7 @@ def kakao_skill():
     }
     return jsonify(response)
 
+# Render 무료 플랜 sleep 방지용
 @app.route('/health', methods=['GET'])
 def health():
     return "OK", 200
