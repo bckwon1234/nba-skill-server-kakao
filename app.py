@@ -98,7 +98,7 @@ def generate_text_output(date_kst, games_list, label="오늘"):
             icon = "🔴"
             score_line = f"{visitors_abbr} {visitors_score:>3} - {home_score:>3} {home_abbr}"
             status_text = "LIVE"
-        elif status_short in ['3', 'FT']:
+        elif status_short in [3, 'FT']:
             icon = "🏁"
             score_line = f"{visitors_abbr} {visitors_score:>3} - {home_score:>3} {home_abbr}"
             status_text = "종료"
