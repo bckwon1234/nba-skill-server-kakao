@@ -23,27 +23,31 @@ def nba_today():
     }
 
     try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        games = response.json().get('response', [])
-
+        # response.text를 utf-8로 강제 디코딩 (latin-1 대신)
+        response_text = response.content.decode('utf-8', errors='replace')  # 깨지면 ?로 대체
+        data = json.loads(response_text)  # 직접 json.loads 사용 (response.json() 대신)
+        
+        games = data.get('response', [])
+    
         if not games:
             text = "오늘 예정된 NBA 경기가 없습니다."
         else:
             text = f"🏀 오늘 ({today}) NBA 경기 일정 & 스코어\n\n"
-            for game in games[:10]:  # 너무 많으면 상위 10개만
+            for game in games[:10]:
                 home = game['teams']['home']['name']
                 away = game['teams']['visitor']['name']
                 score_home = game['scores']['home']['current'] or '-'
                 score_away = game['scores']['visitor']['current'] or '-'
                 status = game['status']['short']
                 clock = game['status']['clock'] or ''
-
+    
                 text += f"{home} {score_home} - {score_away} {away}\n"
                 text += f"   상태: {status} {clock}\n\n"
-
+    
     except Exception as e:
-        text = f"경기 정보를 가져오지 못했어요 ㅠㅠ\n({str(e)})"
+        # 에러 메시지에 한글 깨짐 방지 위해 str(e)도 안전하게
+        error_msg = str(e).encode('utf-8', errors='ignore').decode('utf-8')
+        text = f"경기 정보를 가져오지 못했어요 ㅠㅠ\n(에러: {error_msg})"
 
     return jsonify({
         "version": "2.0",
