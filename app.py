@@ -91,7 +91,7 @@ def generate_text_output():
                 status_text = status_short
 
             status_part = f" ({status_text})" if status_text else ""
-            lines.append(f"{icon} {time_str} | {score_line}{status_part}")
+            lines.append(f"{icon} {time_str} | {score_line} {status_part}")
 
     return "\n".join(lines)
 
