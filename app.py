@@ -62,6 +62,8 @@ abbr_map = {
     "Golden State Warriors": "GSW",
     "Houston Rockets": "HOU",
     "Sacramento Kings": "SAC",
+    "LA Clippers": "LAC",          # Los Angeles Clippers
+    "Los Angeles Lakers": "LAL",   # Los Angeles Lakers
     # 더 많은 팀 추가 추천 (실제 경기 나오면 자동 앞3글자)
 }
 
@@ -90,11 +92,11 @@ def generate_text_output(date_kst, games_list, label="오늘"):
 
         status_short = game['status']['short']
         
-        if status_short in ['1', 'NS']:
+        if status_short in [1, 'NS']:
             icon = "🕒"
             score_line = f"{visitors_abbr} vs {home_abbr}"
             status_text = ""
-        elif status_short in ['2', 'Q1', 'Q2', 'Q3', 'Q4', 'OT', 'BT']:
+        elif status_short in [2, 'Q1', 'Q2', 'Q3', 'Q4', 'OT', 'BT']:
             icon = "🔴"
             score_line = f"{visitors_abbr} {visitors_score:>3} - {home_score:>3} {home_abbr}"
             status_text = "LIVE"
