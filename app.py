@@ -4,11 +4,12 @@ from datetime import datetime, timezone, timedelta
 from flask import make_response
 
 app = Flask(__name__)
-@app.after_request
-def add_no_cache_headers(response):
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+Python@app.after_request
+def add_no_cache(response):
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
+    response.headers['Surrogate-Control'] = 'no-store'  # Render/Cloudflare 캐시 무시
     return response
 
 
@@ -140,8 +141,9 @@ def generate_text_output(date_kst, games_list, label="오늘"):
 
         status_part = f" ({status_text})" if status_text else ""
         lines.append(f"{icon} {time_str} | {score_line}{status_part}")
-
-    return "\n".join(lines)
+        text = "\n".join(lines)
+        text = f"[{datetime.now(kst).strftime('%H:%M:%S')}] " + text
+    return text
 
 @app.route('/', methods=['POST'])
 def kakao_skill():
