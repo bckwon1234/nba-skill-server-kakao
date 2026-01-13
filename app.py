@@ -4,7 +4,7 @@ from datetime import datetime, timezone, timedelta
 from flask import make_response
 
 app = Flask(__name__)
-Python@app.after_request
+@app.after_request
 def add_no_cache(response):
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
