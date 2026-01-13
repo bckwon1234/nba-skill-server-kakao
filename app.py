@@ -1,8 +1,16 @@
 from flask import Flask, request, jsonify
 import requests
 from datetime import datetime, timezone, timedelta
+from flask import make_response
 
 app = Flask(__name__)
+@app.after_request
+def add_no_cache_headers(response):
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
 
 APISPORTS_KEY = "50821732136711c22939fbb8ce18bcc2"
 
