@@ -165,5 +165,8 @@ def health():
     return "OK", 200
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))  # Render가 요구하는 포트
+    port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
+else:
+    # Render에서는 gunicorn이 실행하니 여기서 아무것도 안 해도 됨
+    pass
