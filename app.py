@@ -111,17 +111,17 @@ def generate_text_output(date_kst, games_list, label="오늘"):
         home_score = game['scores']['home'].get('points') or '-'
         visitors_score = game['scores']['visitors'].get('points') or '-'
 
-        status_short = game['status']['short']
+        status_short = str(game['status']['short'])
         
-        if status_short in [1, 'NS']:
+        if status_short in ['1', 'NS']:
             icon = "🕒"
             score_line = f"{visitors_abbr} vs {home_abbr}"
             status_text = ""
-        elif status_short in [2, 'Q1', 'Q2', 'Q3', 'Q4', 'OT', 'BT']:
+        elif status_short in ['2', 'Q1', 'Q2', 'Q3', 'Q4', 'OT', 'BT']:
             icon = "🔴"
             score_line = f"{visitors_abbr} {visitors_score:>3} - {home_score:>3} {home_abbr}"
             status_text = "LIVE"
-        elif status_short in [3, 'FT']:
+        elif status_short in ['3', 'FT']:
             icon = "🏁"
             score_line = f"{visitors_abbr} {visitors_score:>3} - {home_score:>3} {home_abbr}"
             status_text = "종료"
